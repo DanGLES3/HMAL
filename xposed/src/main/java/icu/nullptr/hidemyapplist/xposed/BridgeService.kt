@@ -15,12 +15,10 @@ object BridgeService {
     private var appUid = 0
 
     fun register(pms: IPackageManager) {
-        logI(TAG, "Initialize HMAService - Version ${BuildConfig.SERVICE_VERSION}")
         val service = HMAService(pms)
         appUid = Utils.getPackageUidCompat(service.pms, Constants.APP_PACKAGE_NAME, 0, 0)
         val appPackage = Utils.getPackageInfoCompat(service.pms, Constants.APP_PACKAGE_NAME, 0, 0)
         if (!Utils.verifyAppSignature(appPackage.applicationInfo.sourceDir)) {
-            logE(TAG, "Fatal: App signature mismatch")
             return
         }
         pms.javaClass.findMethod(true) {
@@ -44,6 +42,7 @@ object BridgeService {
                             reply?.writeStrongBinder(HMAService.instance)
                             return true
                         }
+                        else 
                     }
                 }.onFailure {
                 }
