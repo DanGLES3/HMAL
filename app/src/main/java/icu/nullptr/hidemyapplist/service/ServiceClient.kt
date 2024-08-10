@@ -63,15 +63,9 @@ object ServiceClient : IHMAService, DeathRecipient {
 
     override fun getServiceVersion() = getServiceLegacy()?.serviceVersion ?: 0
 
-    override fun getFilterCount() = getServiceLegacy()?.filterCount ?: 0
-
     override fun getLogs() = getServiceLegacy()?.logs
 
     override fun getHookType() = getServiceLegacy()?.hookType
-
-    override fun clearLogs() {
-        getServiceLegacy()?.clearLogs()
-    }
 
     override fun syncConfig(json: String) {
         getServiceLegacy()?.syncConfig(json)
