@@ -13,3 +13,4 @@
 -keepclassmembers class com.google.android.hmal.databinding.**  {
     public <methods>;
 }
+
