@@ -8,11 +8,9 @@ import de.robv.android.xposed.IXposedHookZygoteInit
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import icu.nullptr.hidemyapplist.common.Constants
-import kotlin.concurrent.thread
 
 private const val TAG = "HMAL-XE"
 
-@Suppress("unused")
 class XposedEntry : IXposedHookZygoteInit, IXposedHookLoadPackage {
 
     override fun initZygote(startupParam: IXposedHookZygoteInit.StartupParam) {
@@ -35,11 +33,9 @@ class XposedEntry : IXposedHookZygoteInit, IXposedHookLoadPackage {
                 if (param.args[0] == "package") {
                     serviceManagerHook?.unhook()
                     val pms = param.args[1] as IPackageManager
-                    thread {
-                        runCatching {
-                            UserService.register(pms)
-                        }.onFailure {
-                        }
+                    runCatching {
+                        BridgeService.register(pms)
+                    }.onFailure {
                     }
                 }
             }
