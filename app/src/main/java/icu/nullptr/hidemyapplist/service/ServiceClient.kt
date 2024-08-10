@@ -26,7 +26,6 @@ object ServiceClient : IHMAService, DeathRecipient {
 
     override fun binderDied() {
         service = null
-        Log.e(TAG, "Binder died")
     }
 
     override fun asBinder() = service?.asBinder()
@@ -62,8 +61,6 @@ object ServiceClient : IHMAService, DeathRecipient {
 
 
     override fun getServiceVersion() = getService()?.serviceVersion ?: 0
-
-    override fun getHookType() = getService()?.hookType
 
     override fun syncConfig(json: String) {
         getService()?.syncConfig(json)
