@@ -23,8 +23,6 @@ object BridgeService {
             logE(TAG, "Fatal: App signature mismatch")
             return
         }
-        logD(TAG, "Client uid: $appUid")
-        logI(TAG, "Initialize service proxy")
         pms.javaClass.findMethod(true) {
             name == "onTransact"
         }.hookBefore { param ->
@@ -38,7 +36,6 @@ object BridgeService {
     private fun myTransact(code: Int, data: Parcel, reply: Parcel?): Boolean {
         if (code == Constants.TRANSACTION) {
             if (Binder.getCallingUid() == appUid) {
-                logD(TAG, "Transaction from client")
                 runCatching {
                     data.enforceInterface(Constants.DESCRIPTOR)
                     when (data.readInt()) {
@@ -47,13 +44,10 @@ object BridgeService {
                             reply?.writeStrongBinder(HMAService.instance)
                             return true
                         }
-                        else -> logW(TAG, "Unknown action")
                     }
                 }.onFailure {
-                    logE(TAG, "Transaction error", it)
                 }
             } else {
-                logW(TAG, "Someone else trying to get my binder?")
             }
             data.setDataPosition(0)
             reply?.setDataPosition(0)
