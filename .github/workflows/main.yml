@@ -65,7 +65,7 @@ jobs:
       - name: Build release
         id: buildRelease
         run: |
-          ./gradlew --info :app:buildRelease
+          ./gradlew :app:buildRelease
           echo "releaseName=$(ls app/build/apk/release/HMAL*.apk | awk -F '(/|.apk)' '{print $5}')" >> $GITHUB_OUTPUT
 
       - name: Upload release
