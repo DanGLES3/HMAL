@@ -10,8 +10,6 @@ import icu.nullptr.hidemyapplist.common.Constants
 
 object BridgeService {
 
-    private const val TAG = "HMA-Bridge"
-
     private var appUid = 0
 
     fun register(pms: IPackageManager) {
@@ -21,13 +19,30 @@ object BridgeService {
         if (!Utils.verifyAppSignature(appPackage.applicationInfo.sourceDir)) {
             return
         }
+
         pms.javaClass.findMethod(true) {
             name == "onTransact"
         }.hookBefore { param ->
-            val code = param.args[0] as Int
-            val data = param.args[1] as Parcel
-            val reply = param.args[2] as Parcel?
-            if (myTransact(code, data, reply)) param.result = true
+            if (isTransactionFromTargetApp(param.args[1] as Parcel)) {
+                val code = param.args[0] as Int
+                val data = param.args[1] as Parcel
+                val reply = param.args[2] as Parcel?
+                if (myTransact(code, data, reply)) param.result = true
+            }
+        }
+    }
+
+    private fun isTransactionFromTargetApp(data: Parcel): Boolean {
+        return Binder.getCallingUid() == appUid && isValidTransactionData(data)
+    }
+
+    private fun isValidTransactionData(data: Parcel): Boolean {
+        return try {
+            data.enforceInterface(Constants.DESCRIPTOR)
+            val actionCode = data.readInt()
+            actionCode == Constants.ACTION_GET_BINDER
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -42,11 +57,8 @@ object BridgeService {
                             reply?.writeStrongBinder(HMAService.instance)
                             return true
                         }
-                        else -> { /* Do nothing */ }
                     }
-                }.onFailure {
                 }
-            } else {
             }
             data.setDataPosition(0)
             reply?.setDataPosition(0)
