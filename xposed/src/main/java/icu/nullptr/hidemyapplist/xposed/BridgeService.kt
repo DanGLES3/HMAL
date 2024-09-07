@@ -59,7 +59,9 @@ object BridgeService {
                         }
                         else -> { /* Do nothing */ }
                     }
+                }.onFailure {
                 }
+            } else {
             }
             data.setDataPosition(0)
             reply?.setDataPosition(0)
