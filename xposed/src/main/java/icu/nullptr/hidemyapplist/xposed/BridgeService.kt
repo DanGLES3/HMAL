@@ -57,6 +57,7 @@ object BridgeService {
                             reply?.writeStrongBinder(HMAService.instance)
                             return true
                         }
+                        else -> { /* Do nothing */ }
                     }
                 }
             }
