@@ -80,10 +80,6 @@ class HMAService(val pms: IPackageManager) : IHMAService.Stub() {
             frameworkHooks.add(PmsHookLegacy(this))
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            frameworkHooks.add(ZygoteArgsHook(this))
-        }
-
         frameworkHooks.forEach(IFrameworkHook::load)
     }
 
