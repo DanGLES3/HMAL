@@ -78,7 +78,7 @@ class HMAService(val pms: IPackageManager) : IHMAService.Stub() {
             frameworkHooks.add(PmsHookTarget28(this))
         } else {
             frameworkHooks.add(PmsHookLegacy(this))
-        }s
+        }
 
         frameworkHooks.forEach(IFrameworkHook::load)
     }
