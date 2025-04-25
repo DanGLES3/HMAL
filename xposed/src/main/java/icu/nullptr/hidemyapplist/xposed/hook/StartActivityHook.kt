@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.ActivityNotFoundException
+import android.os.Bundle
+import android.util.Log
 import com.github.kyuubiran.ezxhelper.utils.findMethodOrNull
 import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.XC_MethodHook
@@ -19,7 +21,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
     private val hooks = mutableListOf<XC_MethodHook.Unhook>()
 
     override fun load() {
-        log.i(TAG, "Load hook")
+        Log.i(TAG, "Load hook")
 
         val classes = listOf(
             Context::class.java,
@@ -28,9 +30,9 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
         )
         val methodSigs = listOf(
             arrayOf(Intent::class.java),
-            arrayOf(Intent::class.java, android.os.Bundle::class.java),
+            arrayOf(Intent::class.java, Bundle::class.java),
             arrayOf(Intent::class.java, Int::class.javaPrimitiveType),
-            arrayOf(Intent::class.java, Int::class.javaPrimitiveType, android.os.Bundle::class.java)
+            arrayOf(Intent::class.java, Int::class.javaPrimitiveType, Bundle::class.java)
         )
         val methodNames = listOf("startActivity", "startActivityForResult")
 
@@ -44,16 +46,16 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                         hooks += m.hookBefore { param ->
                             runCatching {
                                 val context = param.thisObject as? Context ?: return@hookBefore
-                                val callerPackageName = context.packageName // Get the package name
+                                val callerPackageName = context.packageName
                                 val intent = param.args[0] as? Intent ?: return@hookBefore
                                 val targetPackage = intent.component?.packageName ?: intent.`package` ?: return@hookBefore
 
                                 if (service.shouldHide(callerPackageName, targetPackage)) {
-                                    log.i(TAG, "Blocked startActivity for $targetPackage from $callerPackageName")
+                                    Log.i(TAG, "Blocked startActivity for $targetPackage from $callerPackageName")
                                     param.throwable = ActivityNotFoundException("Activity not found for $targetPackage")
                                 }
                             }.onFailure {
-                                log.e(TAG, "Error in hook", it)
+                                Log.e(TAG, "Error in hook", it)
                             }
                         }
                     }
