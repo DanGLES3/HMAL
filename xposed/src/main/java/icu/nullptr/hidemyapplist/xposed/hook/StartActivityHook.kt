@@ -52,7 +52,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                                     param.throwable = ActivityNotFoundException("Activity not found for $targetPackage")
                                 }
                             }.onFailure {
-                            }
+                                logE(TAG, "Error in hook", it)
                         }
                     }
                 }
