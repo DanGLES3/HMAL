@@ -82,6 +82,10 @@ class HMAService(val pms: IPackageManager) : IHMAService.Stub() {
             frameworkHooks.add(PmsHookLegacy(this))
         }
 
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        frameworkHooks.add(StartActivityHook(this))
+        }
+
         frameworkHooks.forEach(IFrameworkHook::load)
     }
 
