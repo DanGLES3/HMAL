@@ -10,8 +10,6 @@ import com.github.kyuubiran.ezxhelper.utils.findMethodOrNull
 import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.XC_MethodHook
 import icu.nullptr.hidemyapplist.xposed.HMAService
-import icu.nullptr.hidemyapplist.xposed.logE
-import icu.nullptr.hidemyapplist.xposed.logI
 
 class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
@@ -22,7 +20,6 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
     private val hooks = mutableListOf<XC_MethodHook.Unhook>()
 
     override fun load() {
-        logI(TAG, "Load hook")
 
         val classes = listOf(
             Context::class.java,
@@ -52,11 +49,9 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                                 val targetPackage = intent.component?.packageName ?: intent.`package` ?: return@hookBefore
 
                                 if (service.shouldHide(callerPackageName, targetPackage)) {
-                                    logI(TAG, "Blocked startActivity for $targetPackage from $callerPackageName")
                                     param.throwable = ActivityNotFoundException("Activity not found for $targetPackage")
                                 }
                             }.onFailure {
-                                logE(TAG, "Error in hook", it)
                             }
                         }
                     }
