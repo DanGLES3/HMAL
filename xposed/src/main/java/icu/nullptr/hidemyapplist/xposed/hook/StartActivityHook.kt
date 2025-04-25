@@ -30,9 +30,9 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
         )
         val methodSigs = listOf(
             arrayOf(Intent::class.java),
-            arrayOf(Intent::class.java, Bundle::class.java),
+            arrayOf(Intent::class.java, android.os.Bundle::class.java),
             arrayOf(Intent::class.java, Int::class.javaPrimitiveType),
-            arrayOf(Intent::class.java, Int::class.javaPrimitiveType, Bundle::class.java)
+            arrayOf(Intent::class.java, Int::class.javaPrimitiveType, android.os.Bundle::class.java)
         )
         val methodNames = listOf("startActivity", "startActivityForResult")
 
