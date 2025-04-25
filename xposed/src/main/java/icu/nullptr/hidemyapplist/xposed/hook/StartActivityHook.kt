@@ -6,11 +6,11 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.content.ActivityNotFoundException
 import android.os.Bundle
-import android.util.Log
 import com.github.kyuubiran.ezxhelper.utils.findMethodOrNull
 import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.XC_MethodHook
 import icu.nullptr.hidemyapplist.xposed.HMAService
+import de.robv.android.xposed.XposedBridge
 
 class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
@@ -21,7 +21,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
     private val hooks = mutableListOf<XC_MethodHook.Unhook>()
 
     override fun load() {
-        Log.i(TAG, "Load hook")
+        XposedBridge.log("Load hook for $TAG")
 
         val classes = listOf(
             Context::class.java,
@@ -51,11 +51,11 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                                 val targetPackage = intent.component?.packageName ?: intent.`package` ?: return@hookBefore
 
                                 if (service.shouldHide(callerPackageName, targetPackage)) {
-                                    Log.i(TAG, "Blocked startActivity for $targetPackage from $callerPackageName")
+                                    XposedBridge.log("Blocked startActivity for $targetPackage from $callerPackageName")
                                     param.throwable = ActivityNotFoundException("Activity not found for $targetPackage")
                                 }
                             }.onFailure {
-                                Log.e(TAG, "Error in hook", it)
+                                XposedBridge.log("Error in hook: ${it.localizedMessage}")
                             }
                         }
                     }
@@ -67,6 +67,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
     override fun unload() {
         hooks.forEach { it.unhook() }
         hooks.clear()
+        XposedBridge.log("Unhooked all StartActivityHooks")
     }
 
     override fun onConfigChanged() {}
