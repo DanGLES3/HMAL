@@ -12,7 +12,7 @@ import de.robv.android.xposed.XC_MethodHook
 import icu.nullptr.hidemyapplist.xposed.HMAService
 import de.robv.android.xposed.XposedBridge
 
-class StartActivityHook(private val service: HMAService) : IFrameworkHook {
+class StartActivityHook(private val service: HMALService) : IFrameworkHook {
 
     companion object {
         private const val TAG = "StartActivityHook"
