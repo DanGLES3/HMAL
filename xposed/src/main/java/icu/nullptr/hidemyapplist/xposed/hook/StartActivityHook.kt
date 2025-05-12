@@ -26,7 +26,6 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
     }
 
     override fun load() {
-        logI(TAG, "Load StartActivityHook")
 
         val classesToHook = listOf(
             Context::class.java,
