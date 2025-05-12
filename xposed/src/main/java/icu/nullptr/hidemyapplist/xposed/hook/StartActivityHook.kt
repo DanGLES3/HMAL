@@ -10,9 +10,6 @@ import com.github.kyuubiran.ezxhelper.utils.findMethodOrNull
 import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.XC_MethodHook
 import icu.nullptr.hidemyapplist.xposed.HMAService
-import icu.nullptr.hidemyapplist.xposed.logD
-import icu.nullptr.hidemyapplist.xposed.logE
-import icu.nullptr.hidemyapplist.xposed.logI
 
 class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
