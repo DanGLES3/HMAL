@@ -10,7 +10,9 @@ import com.github.kyuubiran.ezxhelper.utils.findMethodOrNull
 import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.XC_MethodHook
 import icu.nullptr.hidemyapplist.xposed.HMAService
-import de.robv.android.xposed.XposedBridge
+import icu.nullptr.hidemyapplist.xposed.logD
+import icu.nullptr.hidemyapplist.xposed.logE
+import icu.nullptr.hidemyapplist.xposed.logI
 
 class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
@@ -20,55 +22,86 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
     private val hooks = mutableListOf<XC_MethodHook.Unhook>()
 
-    override fun load() {
-        XposedBridge.log("Load hook for $TAG")
+    private fun Intent.isWebIntent(): Boolean {
+        return Intent.ACTION_VIEW == action && data != null &&
+                (data?.scheme.equals("http", ignoreCase = true) ||
+                        data?.scheme.equals("https", ignoreCase = true))
+    }
 
-        val classes = listOf(
+    override fun load() {
+        logI(TAG, "Load StartActivityHook")
+
+        val classesToHook = listOf(
             Context::class.java,
             Activity::class.java,
             ContextWrapper::class.java
         )
-        val methodSigs = listOf(
-            arrayOf(Intent::class.java),
-            arrayOf(Intent::class.java, android.os.Bundle::class.java),
-            arrayOf(Intent::class.java, Int::class.javaPrimitiveType),
-            arrayOf(Intent::class.java, Int::class.javaPrimitiveType, android.os.Bundle::class.java)
-        )
-        val methodNames = listOf("startActivity", "startActivityForResult")
 
-        for (clazz in classes) {
-            for (method in methodNames) {
-                for (sig in methodSigs) {
+        val methodSignatures = listOf(
+            arrayOf<Class<*>>(Intent::class.java),
+            arrayOf<Class<*>>(Intent::class.java, Bundle::class.java),
+            arrayOf<Class<*>>(Intent::class.java, Integer.TYPE),
+            arrayOf<Class<*>>(Intent::class.java, Integer.TYPE, Bundle::class.java)
+        )
+        val methodNamesToHook = listOf("startActivity", "startActivityForResult")
+
+        classesToHook.forEach { clazz ->
+            methodNamesToHook.forEach { methodName ->
+                methodSignatures.forEach { signature ->
                     runCatching {
-                        val m = findMethodOrNull(clazz, findSuper = true) {
-                            name == method && parameterTypes.contentEquals(sig)
+                        val method = findMethodOrNull(clazz, true) {
+                            this.name == methodName && this.parameterTypes.contentEquals(signature)
                         } ?: return@runCatching
-                        hooks += m.hookBefore { param ->
+
+                        hooks += method.hookBefore { param: XC_MethodHook.MethodHookParam ->
                             runCatching {
                                 val context = param.thisObject as? Context ?: return@hookBefore
                                 val callerPackageName = context.packageName
                                 val intent = param.args[0] as? Intent ?: return@hookBefore
-                                val targetPackage = intent.component?.packageName ?: intent.`package` ?: return@hookBefore
 
-                                if (service.shouldHide(callerPackageName, targetPackage)) {
-                                    XposedBridge.log("Blocked startActivity for $targetPackage from $callerPackageName")
-                                    param.throwable = ActivityNotFoundException("Activity not found for $targetPackage")
+                                val appConfig = service.config.scope[callerPackageName]
+                                val isCallerHooked = appConfig != null
+                                val isInWhitelistMode = appConfig?.useWhitelist == true
+
+                                if (!isCallerHooked) {
+                                    return@hookBefore
                                 }
-                            }.onFailure {
-                                XposedBridge.log("Error in hook: ${it.localizedMessage}")
+
+                                if (isInWhitelistMode) {
+                                    return@hookBefore
+                                }
+
+                                val targetPackageNameFromIntent: String? = intent.component?.packageName ?: intent.`package`
+                                if (service.shouldHide(callerPackageName, targetPackageNameFromIntent)) {
+                                    val intentDescription = intent.toString()
+                                    val targetDescription = targetPackageNameFromIntent!!
+
+                                    if (intent.isWebIntent()) {
+                                        param.throwable = ActivityNotFoundException("Nolog Activity found to handle $intent (web intent blocked by HMA rules for $callerPackageName)")
+                                    } else {
+                                        param.throwable = ActivityNotFoundException("No Activity found to handle $intent (intent blocked by HMA rules for $callerPackageName)")
+                                    }
+                                }
+                            }.onFailure { error ->
+                                val intentInfo = param.args?.getOrNull(0)?.toString() ?: "N/A"
+                                val currentCaller = (param.thisObject as? Context)?.packageName ?: "UnknownCaller"
                             }
                         }
+                    }.onFailure { error ->
                     }
                 }
             }
         }
+        if (hooks.isEmpty()) {
+        } else {
+        }
     }
 
     override fun unload() {
-        hooks.forEach { it.unhook() }
-        hooks.clear()
-        XposedBridge.log("Unhooked all StartActivityHooks")
+        if (hooks.isNotEmpty()) {
+            hooks.forEach { it.unhook() }
+            hooks.clear()
+        } else {
+        }
     }
-
-    override fun onConfigChanged() {}
 }
