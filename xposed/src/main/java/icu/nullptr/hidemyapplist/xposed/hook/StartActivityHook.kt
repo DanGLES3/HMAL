@@ -40,23 +40,26 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                         } ?: return@runCatching
 
                         hooks += method.hookBefore { param ->
-                            val context = param.thisObject as? Context ?: return@hookBefore
-                            val callerPackage = context.packageName
-                            val intent = param.args[0] as? Intent ?: return@hookBefore
+                            runCatching {
+                                val context = param.thisObject as? Context ?: return@hookBefore
+                                val callerPackage = context.packageName
+                                val intent = param.args[0] as? Intent ?: return@hookBefore
 
-                            val appConfig = service.config.scope[callerPackage]
-                            if (appConfig == null || appConfig.useWhitelist) return@hookBefore
+                                val appConfig = service.config.scope[callerPackage]
+                                if (appConfig == null || appConfig.useWhitelist) return@hookBefore
 
-                            val isExplicit = intent.component != null || intent.`package` != null
-                            val targetPackage = intent.component?.packageName ?: intent.`package`
+                                val isExplicit = intent.component != null || intent.`package` != null
+                                val targetPackage = intent.component?.packageName ?: intent.`package`
 
-                            if (isExplicit && targetPackage != null &&
-                                service.shouldHide(callerPackage, targetPackage)) {
+                                if (isExplicit && targetPackage != null &&
+                                    service.shouldHide(callerPackage, targetPackage)) {
 
-                                param.throwable = ActivityNotFoundException(
-                                    "No Activity found to handle $intent"
-                                )
+                                    param.throwable = ActivityNotFoundException(
+                                        "No Activity found to handle $intent"
+                                    )
+                                }
                             }
+                            // Ignore any errors silently inside this hook
                         }
                     }
                 }
