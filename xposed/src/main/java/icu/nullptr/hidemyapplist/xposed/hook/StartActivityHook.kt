@@ -7,7 +7,7 @@ import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.XC_MethodHook
 import icu.nullptr.hidemyapplist.xposed.HMAService
 
-class CheckStartAnyActivityPermissionHook(
+class StartActivityHook(
     private val service: HMAService
 ) : IFrameworkHook {
 
