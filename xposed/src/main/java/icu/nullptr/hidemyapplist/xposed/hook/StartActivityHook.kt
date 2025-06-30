@@ -15,12 +15,6 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
     private val hooks = mutableListOf<XC_MethodHook.Unhook>()
 
-    private fun Intent.isWebIntent(): Boolean {
-        return Intent.ACTION_VIEW == action && data != null &&
-                (data?.scheme.equals("http", ignoreCase = true) ||
-                 data?.scheme.equals("https", ignoreCase = true))
-    }
-
     override fun load() {
         val classesToHook = listOf(
             Context::class.java,
@@ -29,10 +23,10 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
         )
 
         val methodSignatures = listOf(
-            arrayOf<Class<*>>(Intent::class.java),
-            arrayOf<Class<*>>(Intent::class.java, Bundle::class.java),
-            arrayOf<Class<*>>(Intent::class.java, Integer.TYPE),
-            arrayOf<Class<*>>(Intent::class.java, Integer.TYPE, Bundle::class.java)
+            arrayOf(Intent::class.java),
+            arrayOf(Intent::class.java, Bundle::class.java),
+            arrayOf(Intent::class.java, Int::class.java),
+            arrayOf(Intent::class.java, Int::class.java, Bundle::class.java)
         )
 
         val methodNamesToHook = listOf("startActivity", "startActivityForResult")
@@ -46,28 +40,22 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                         } ?: return@runCatching
 
                         hooks += method.hookBefore { param ->
-                            runCatching {
-                                val context = param.thisObject as? Context ?: return@hookBefore
-                                val callerPackageName = context.packageName
-                                val intent = param.args[0] as? Intent ?: return@hookBefore
+                            val context = param.thisObject as? Context ?: return@hookBefore
+                            val callerPackage = context.packageName
+                            val intent = param.args[0] as? Intent ?: return@hookBefore
 
-                                val appConfig = service.config.scope[callerPackageName]
-                                val isCallerHooked = appConfig != null
-                                val isInWhitelistMode = appConfig?.useWhitelist == true
+                            val appConfig = service.config.scope[callerPackage]
+                            if (appConfig == null || appConfig.useWhitelist) return@hookBefore
 
-                                if (!isCallerHooked || isInWhitelistMode) return@hookBefore
+                            val isExplicit = intent.component != null || intent.`package` != null
+                            val targetPackage = intent.component?.packageName ?: intent.`package`
 
-                                val isExplicitIntent = intent.component != null || intent.`package` != null
-                                val targetPackageName = intent.component?.packageName ?: intent.`package`
+                            if (isExplicit && targetPackage != null &&
+                                service.shouldHide(callerPackage, targetPackage)) {
 
-                                if (isExplicitIntent && targetPackageName != null &&
-                                    service.shouldHide(callerPackageName, targetPackageName)) {
-
-                                    param.throwable = ActivityNotFoundException(
-                                        "No Activity found to handle $intent"
-                                    )
-                                }
-
+                                param.throwable = ActivityNotFoundException(
+                                    "No Activity found to handle $intent"
+                                )
                             }
                         }
                     }
