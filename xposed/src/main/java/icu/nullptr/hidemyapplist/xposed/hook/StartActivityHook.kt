@@ -13,20 +13,15 @@ import icu.nullptr.hidemyapplist.xposed.HMAService
 
 class StartActivityHook(private val service: HMAService) : IFrameworkHook {
 
-    companion object {
-        private const val TAG = "StartActivityHook"
-    }
-
     private val hooks = mutableListOf<XC_MethodHook.Unhook>()
 
     private fun Intent.isWebIntent(): Boolean {
         return Intent.ACTION_VIEW == action && data != null &&
                 (data?.scheme.equals("http", ignoreCase = true) ||
-                        data?.scheme.equals("https", ignoreCase = true))
+                 data?.scheme.equals("https", ignoreCase = true))
     }
 
     override fun load() {
-
         val classesToHook = listOf(
             Context::class.java,
             Activity::class.java,
@@ -39,6 +34,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
             arrayOf<Class<*>>(Intent::class.java, Integer.TYPE),
             arrayOf<Class<*>>(Intent::class.java, Integer.TYPE, Bundle::class.java)
         )
+
         val methodNamesToHook = listOf("startActivity", "startActivityForResult")
 
         classesToHook.forEach { clazz ->
@@ -49,7 +45,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                             this.name == methodName && this.parameterTypes.contentEquals(signature)
                         } ?: return@runCatching
 
-                        hooks += method.hookBefore { param: XC_MethodHook.MethodHookParam ->
+                        hooks += method.hookBefore { param ->
                             runCatching {
                                 val context = param.thisObject as? Context ?: return@hookBefore
                                 val callerPackageName = context.packageName
@@ -59,45 +55,29 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
                                 val isCallerHooked = appConfig != null
                                 val isInWhitelistMode = appConfig?.useWhitelist == true
 
-                                if (!isCallerHooked) {
-                                    return@hookBefore
+                                if (!isCallerHooked || isInWhitelistMode) return@hookBefore
+
+                                val isExplicitIntent = intent.component != null || intent.`package` != null
+                                val targetPackageName = intent.component?.packageName ?: intent.`package`
+
+                                if (isExplicitIntent && targetPackageName != null &&
+                                    service.shouldHide(callerPackageName, targetPackageName)) {
+
+                                    param.throwable = ActivityNotFoundException(
+                                        "No Activity found to handle $intent"
+                                    )
                                 }
 
-                                if (isInWhitelistMode) {
-                                    return@hookBefore
-                                }
-
-                                val targetPackageNameFromIntent: String? = intent.component?.packageName ?: intent.`package`
-                                if (service.shouldHide(callerPackageName, targetPackageNameFromIntent)) {
-                                    val intentDescription = intent.toString()
-                                    val targetDescription = targetPackageNameFromIntent!!
-
-                                    if (intent.isWebIntent()) {
-                                        param.throwable = ActivityNotFoundException("Nolog Activity found to handle $intent (web intent blocked by HMA rules for $callerPackageName)")
-                                    } else {
-                                        param.throwable = ActivityNotFoundException("No Activity found to handle $intent (intent blocked by HMA rules for $callerPackageName)")
-                                    }
-                                }
-                            }.onFailure { error ->
-                                val intentInfo = param.args?.getOrNull(0)?.toString() ?: "N/A"
-                                val currentCaller = (param.thisObject as? Context)?.packageName ?: "UnknownCaller"
                             }
                         }
-                    }.onFailure { error ->
                     }
                 }
             }
         }
-        if (hooks.isEmpty()) {
-        } else {
-        }
     }
 
     override fun unload() {
-        if (hooks.isNotEmpty()) {
-            hooks.forEach { it.unhook() }
-            hooks.clear()
-        } else {
-        }
+        hooks.forEach { it.unhook() }
+        hooks.clear()
     }
 }
