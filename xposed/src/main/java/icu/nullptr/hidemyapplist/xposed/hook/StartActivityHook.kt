@@ -68,6 +68,7 @@ class StartActivityHook(private val service: HMAService) : IFrameworkHook {
     }
 
     override fun unload() {
+    if (hooks.isNotEmpty()) {
         hooks.forEach { it.unhook() }
         hooks.clear()
     }
